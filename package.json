@@ -1,0 +1,23 @@
+{
+  "name": "fretboard-trainer",
+  "version": "1.0.0",
+  "description": "A web app to help memorize guitar fretboard notes using flashcards and audio pitch detection",
+  "main": "app.js",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/run-tests.js",
+    "test:browser": "echo 'Open http://localhost:8080/tests/test-runner.html in your browser'"
+  },
+  "keywords": [
+    "guitar",
+    "fretboard",
+    "music",
+    "learning",
+    "pitch-detection"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

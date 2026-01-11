@@ -1,0 +1,215 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
+.container {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+}
+
+h1 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    margin-bottom: 2rem;
+    color: #e94560;
+}
+
+/* Flashcard */
+.flashcard {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.note-display {
+    font-size: 6rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 4px 20px rgba(233, 69, 96, 0.5);
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.string-display {
+    font-size: 1.5rem;
+    color: #a0a0a0;
+    font-weight: 300;
+}
+
+/* Status indicator */
+.status-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #555;
+    transition: all 0.3s ease;
+}
+
+.status-indicator.listening {
+    background: #4fc3f7;
+    box-shadow: 0 0 20px rgba(79, 195, 247, 0.6);
+    animation: pulse 1.5s infinite;
+}
+
+.status-indicator.success {
+    background: #66bb6a;
+    box-shadow: 0 0 20px rgba(102, 187, 106, 0.6);
+}
+
+.status-indicator.error {
+    background: #ef5350;
+    box-shadow: 0 0 20px rgba(239, 83, 80, 0.6);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+}
+
+.status-text {
+    font-size: 0.9rem;
+    color: #888;
+    max-width: 300px;
+    text-align: center;
+}
+
+/* Detected note display */
+.detected-note {
+    font-size: 0.9rem;
+    color: #4fc3f7;
+    height: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.start-button {
+    background: linear-gradient(135deg, #e94560 0%, #c23a51 100%);
+    color: #fff;
+    border: none;
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+}
+
+.start-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
+}
+
+.start-button:active {
+    transform: translateY(0);
+}
+
+.start-button.active {
+    background: linear-gradient(135deg, #555 0%, #333 100%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Score display */
+.score-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    color: #888;
+}
+
+.score-label {
+    font-weight: 300;
+}
+
+.score {
+    font-weight: 700;
+    color: #66bb6a;
+    font-size: 1.3rem;
+}
+
+/* Mode toggle button */
+.mode-toggle {
+    background: transparent;
+    color: #888;
+    border: 1px solid #444;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+.mode-toggle:hover {
+    border-color: #4fc3f7;
+    color: #4fc3f7;
+}
+
+.mode-toggle.keyboard-mode {
+    border-color: #66bb6a;
+    color: #66bb6a;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .container {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 1.4rem;
+    }
+
+    .note-display {
+        font-size: 4.5rem;
+    }
+
+    .string-display {
+        font-size: 1.2rem;
+    }
+
+    .flashcard {
+        padding: 2rem 1.5rem;
+    }
+}

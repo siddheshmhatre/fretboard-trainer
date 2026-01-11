@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fretboard Trainer - Test Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .controls {
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            background: #4fc3f7;
+            color: #1a1a2e;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        button:hover {
+            background: #81d4fa;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            background: #16213e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .summary.visible {
+            display: block;
+        }
+
+        .summary.passed {
+            border-left: 4px solid #66bb6a;
+        }
+
+        .summary.failed {
+            border-left: 4px solid #ef5350;
+        }
+
+        .summary h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary .stats {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .summary .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .summary .stat.pass {
+            color: #66bb6a;
+        }
+
+        .summary .stat.fail {
+            color: #ef5350;
+        }
+
+        .output {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .suite {
+            margin-bottom: 1rem;
+        }
+
+        .suite-name {
+            color: #4fc3f7;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .test {
+            padding: 0.25rem 0 0.25rem 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .test.pass {
+            color: #66bb6a;
+        }
+
+        .test.pass::before {
+            content: '✓ ';
+        }
+
+        .test.fail {
+            color: #ef5350;
+        }
+
+        .test.fail::before {
+            content: '✗ ';
+        }
+
+        .test .error {
+            color: #ff8a80;
+            padding-left: 1rem;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .loading {
+            color: #888;
+            font-style: italic;
+        }
+
+        .progress {
+            margin-bottom: 1rem;
+            color: #888;
+        }
+
+        #console-output {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fretboard Trainer - Test Suite</h1>
+
+    <div class="controls">
+        <button id="run-btn" onclick="runTests()">Run All Tests</button>
+        <button id="run-unit-btn" onclick="runTests('unit')">Run Unit Tests</button>
+        <button id="run-integration-btn" onclick="runTests('integration')">Run Integration Tests</button>
+    </div>
+
+    <div id="summary" class="summary">
+        <h2 id="summary-title">Test Results</h2>
+        <div class="stats">
+            <div class="stat pass">
+                <span>Passed:</span>
+                <strong id="passed-count">0</strong>
+            </div>
+            <div class="stat fail">
+                <span>Failed:</span>
+                <strong id="failed-count">0</strong>
+            </div>
+            <div class="stat">
+                <span>Total:</span>
+                <strong id="total-count">0</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="progress" id="progress"></div>
+
+    <div class="output" id="output">
+        <div class="loading">Click "Run All Tests" to start the test suite...</div>
+    </div>
+
+    <!-- Load source files -->
+    <script src="../fretboard.js"></script>
+    <script src="../audio.js"></script>
+    <script src="../app.js"></script>
+
+    <!-- Load test framework -->
+    <script src="test-framework.js"></script>
+
+    <!-- Load test files -->
+    <script src="fretboard.test.js"></script>
+    <script src="audio.test.js"></script>
+    <script src="app.test.js"></script>
+    <script src="integration.test.js"></script>
+
+    <script>
+        // Filter suites by type
+        function filterSuites(type) {
+            if (type === 'unit') {
+                return testRunner.suites.filter(s =>
+                    !s.name.startsWith('Integration')
+                );
+            } else if (type === 'integration') {
+                return testRunner.suites.filter(s =>
+                    s.name.startsWith('Integration')
+                );
+            }
+            return testRunner.suites;
+        }
+
+        async function runTests(type = 'all') {
+            const runBtn = document.getElementById('run-btn');
+            const unitBtn = document.getElementById('run-unit-btn');
+            const integrationBtn = document.getElementById('run-integration-btn');
+            const output = document.getElementById('output');
+            const summary = document.getElementById('summary');
+            const progress = document.getElementById('progress');
+
+            // Disable buttons
+            runBtn.disabled = true;
+            unitBtn.disabled = true;
+            integrationBtn.disabled = true;
+
+            output.innerHTML = '<div class="loading">Running tests...</div>';
+            summary.classList.remove('visible', 'passed', 'failed');
+            progress.textContent = 'Initializing...';
+
+            // Create a filtered test runner
+            const filteredRunner = new TestRunner();
+            const suitesToRun = filterSuites(type);
+            filteredRunner.suites = suitesToRun;
+
+            // Run tests
+            const results = await filteredRunner.run();
+
+            // Update summary
+            document.getElementById('passed-count').textContent = results.passed;
+            document.getElementById('failed-count').textContent = results.failed;
+            document.getElementById('total-count').textContent = results.total;
+
+            summary.classList.add('visible');
+            summary.classList.add(results.failed === 0 ? 'passed' : 'failed');
+
+            const typeName = type === 'all' ? 'All' :
+                            type === 'unit' ? 'Unit' : 'Integration';
+            document.getElementById('summary-title').textContent =
+                `${typeName} Test Results: ${results.failed === 0 ? 'All Passed!' : 'Some Failed'}`;
+
+            // Render results
+            let html = '';
+            results.suites.forEach(suite => {
+                html += `<div class="suite">`;
+                html += `<div class="suite-name">${suite.name}</div>`;
+                suite.tests.forEach(test => {
+                    const className = test.passed ? 'pass' : 'fail';
+                    html += `<div class="test ${className}">${test.name}`;
+                    if (!test.passed && test.error) {
+                        html += `<div class="error">${test.error}</div>`;
+                    }
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            });
+
+            output.innerHTML = html;
+            progress.textContent = `Completed: ${results.passed}/${results.total} tests passed`;
+
+            // Re-enable buttons
+            runBtn.disabled = false;
+            unitBtn.disabled = false;
+            integrationBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
