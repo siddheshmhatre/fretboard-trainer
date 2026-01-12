@@ -52,10 +52,6 @@ class FretboardTrainer {
         this.calibrationDuration = 2000; // 2 seconds per string
         this.calibrationOffsets = this.loadCalibration();
 
-        // Difficulty/tolerance setting
-        this.difficultySelect = document.getElementById('difficulty');
-        this.tolerance = this.loadTolerance();
-
         this.init();
     }
 
@@ -76,15 +72,6 @@ class FretboardTrainer {
         }
         if (this.calibrationCancel) {
             this.calibrationCancel.addEventListener('click', () => this.cancelCalibration());
-        }
-
-        // Difficulty selector
-        if (this.difficultySelect) {
-            this.difficultySelect.value = this.tolerance.toString();
-            this.difficultySelect.addEventListener('change', () => {
-                this.tolerance = parseInt(this.difficultySelect.value, 10);
-                this.saveTolerance();
-            });
         }
 
         // Keyboard controls
@@ -205,11 +192,11 @@ class FretboardTrainer {
         const centsOffset = this.calculateCentsOffset(frequency, calibratedTarget);
         this.updatePitchMeter(centsOffset);
 
-        // Check if it matches the target note (using calibrated frequency and tolerance)
+        // Check if it matches the target note (using calibrated frequency)
         const isMatch = Fretboard.isNoteMatch(
             frequency,
             calibratedTarget,
-            this.tolerance
+            50 // 50 cents tolerance for exact match
         );
 
         if (isMatch) {
@@ -491,22 +478,6 @@ class FretboardTrainer {
             console.error('Error loading calibration:', e);
         }
         return {};
-    }
-
-    saveTolerance() {
-        localStorage.setItem('fretboardTrainerTolerance', this.tolerance.toString());
-    }
-
-    loadTolerance() {
-        try {
-            const saved = localStorage.getItem('fretboardTrainerTolerance');
-            if (saved) {
-                return parseInt(saved, 10);
-            }
-        } catch (e) {
-            console.error('Error loading tolerance:', e);
-        }
-        return 50; // Default to intermediate
     }
 
     getCalibrationOffset(stringNum) {
