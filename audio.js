@@ -12,6 +12,10 @@ class AudioPitchDetector {
         this.fftSize = 2048;
         this.minFrequency = 70;   // Below low E (82 Hz)
         this.maxFrequency = 1200; // Well above highest fret on high E
+
+        // YIN algorithm settings
+        this.yinThreshold = 0.15;  // Lower = stricter detection
+        this.yinProbabilityThreshold = 0.8; // Reject detections below this confidence
     }
 
     async start() {
@@ -80,104 +84,105 @@ class AudioPitchDetector {
         const buffer = new Float32Array(this.analyser.fftSize);
         this.analyser.getFloatTimeDomainData(buffer);
 
-        const frequency = this.autoCorrelate(buffer, this.audioContext.sampleRate);
+        const result = this.yinDetect(buffer, this.audioContext.sampleRate);
 
-        if (this.onPitchDetected && frequency > 0) {
-            this.onPitchDetected(frequency);
+        if (this.onPitchDetected && result.frequency > 0 && result.probability >= this.yinProbabilityThreshold) {
+            this.onPitchDetected(result.frequency, result.probability);
         }
 
         requestAnimationFrame(() => this.detectPitch());
     }
 
-    // Autocorrelation-based pitch detection algorithm
-    autoCorrelate(buffer, sampleRate) {
-        // Check if there's enough signal
+    // YIN pitch detection algorithm
+    // Based on "YIN, a fundamental frequency estimator for speech and music"
+    // by Alain de Cheveigné and Hideki Kawahara
+    yinDetect(buffer, sampleRate) {
+        const bufferSize = buffer.length;
+        const halfBuffer = Math.floor(bufferSize / 2);
+
+        // Check if there's enough signal (RMS check)
         let rms = 0;
-        for (let i = 0; i < buffer.length; i++) {
+        for (let i = 0; i < bufferSize; i++) {
             rms += buffer[i] * buffer[i];
         }
-        rms = Math.sqrt(rms / buffer.length);
+        rms = Math.sqrt(rms / bufferSize);
 
         // Not enough signal
-        if (rms < 0.01) return -1;
-
-        // Find the first point where the signal crosses zero (going up)
-        let start = 0;
-        for (let i = 0; i < buffer.length / 2; i++) {
-            if (buffer[i] < 0 && buffer[i + 1] >= 0) {
-                start = i;
-                break;
-            }
+        if (rms < 0.01) {
+            return { frequency: -1, probability: 0 };
         }
 
-        // Find the end point
-        let end = buffer.length - 1;
-        for (let i = buffer.length - 1; i >= buffer.length / 2; i--) {
-            if (buffer[i] < 0 && buffer[i - 1] >= 0) {
-                end = i;
-                break;
+        // Step 1 & 2: Compute the difference function d(tau) and
+        // cumulative mean normalized difference d'(tau)
+        const yinBuffer = new Float32Array(halfBuffer);
+
+        // d(0) is always 0, d'(0) = 1 by definition
+        yinBuffer[0] = 1;
+
+        let runningSum = 0;
+
+        for (let tau = 1; tau < halfBuffer; tau++) {
+            // Compute difference function d(tau)
+            let delta = 0;
+            for (let i = 0; i < halfBuffer; i++) {
+                const diff = buffer[i] - buffer[i + tau];
+                delta += diff * diff;
             }
+
+            // Cumulative mean normalized difference d'(tau)
+            runningSum += delta;
+            yinBuffer[tau] = delta * tau / runningSum;
         }
 
-        // Trim the buffer
-        const trimmedBuffer = buffer.slice(start, end);
-        const size = trimmedBuffer.length;
-
-        // Autocorrelation
-        const correlations = new Array(size).fill(0);
-        for (let lag = 0; lag < size; lag++) {
-            let sum = 0;
-            for (let i = 0; i < size - lag; i++) {
-                sum += trimmedBuffer[i] * trimmedBuffer[i + lag];
-            }
-            correlations[lag] = sum;
-        }
-
-        // Find the first peak after the initial decline
-        let foundPeak = false;
-        let peakLag = 0;
-
-        // Skip the initial correlation at lag 0 (always highest)
-        // Look for where correlation starts declining, then find next peak
-        let prevCorr = correlations[0];
-        for (let lag = 1; lag < size; lag++) {
-            const corr = correlations[lag];
-
-            if (!foundPeak) {
-                // Looking for the correlation to start going back up
-                if (corr > prevCorr && prevCorr < correlations[0] * 0.5) {
-                    foundPeak = true;
-                    peakLag = lag;
+        // Step 3: Absolute threshold
+        // Find the first tau where d'(tau) < threshold
+        let tauEstimate = -1;
+        for (let tau = 2; tau < halfBuffer; tau++) {
+            if (yinBuffer[tau] < this.yinThreshold) {
+                // Find the local minimum in this dip
+                while (tau + 1 < halfBuffer && yinBuffer[tau + 1] < yinBuffer[tau]) {
+                    tau++;
                 }
+                tauEstimate = tau;
+                break;
+            }
+        }
+
+        // No pitch found
+        if (tauEstimate === -1) {
+            return { frequency: -1, probability: 0 };
+        }
+
+        // Step 4: Parabolic interpolation for sub-sample precision
+        let betterTau;
+        if (tauEstimate > 0 && tauEstimate < halfBuffer - 1) {
+            const s0 = yinBuffer[tauEstimate - 1];
+            const s1 = yinBuffer[tauEstimate];
+            const s2 = yinBuffer[tauEstimate + 1];
+
+            // Parabolic interpolation
+            const adjustment = (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+            if (isFinite(adjustment)) {
+                betterTau = tauEstimate + adjustment;
             } else {
-                // Found start of peak, now find the actual maximum
-                if (corr > correlations[peakLag]) {
-                    peakLag = lag;
-                } else if (corr < correlations[peakLag] * 0.9) {
-                    // We've passed the peak
-                    break;
-                }
+                betterTau = tauEstimate;
             }
-            prevCorr = corr;
+        } else {
+            betterTau = tauEstimate;
         }
 
-        if (peakLag === 0) return -1;
+        // Calculate frequency
+        const frequency = sampleRate / betterTau;
 
-        // Parabolic interpolation for better precision
-        const y1 = correlations[peakLag - 1] || 0;
-        const y2 = correlations[peakLag];
-        const y3 = correlations[peakLag + 1] || 0;
-
-        const refinedLag = peakLag + (y3 - y1) / (2 * (2 * y2 - y1 - y3));
-
-        const frequency = sampleRate / refinedLag;
+        // Calculate probability/confidence (1 - d'(tau))
+        const probability = 1 - yinBuffer[tauEstimate];
 
         // Filter out frequencies outside guitar range
         if (frequency < this.minFrequency || frequency > this.maxFrequency) {
-            return -1;
+            return { frequency: -1, probability: 0 };
         }
 
-        return frequency;
+        return { frequency, probability };
     }
 }
 

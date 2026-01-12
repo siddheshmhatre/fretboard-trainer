@@ -111,7 +111,79 @@ h1 {
     font-size: 0.9rem;
     color: #4fc3f7;
     height: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Pitch meter */
+.pitch-meter {
     margin-bottom: 1.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.meter-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 0.3rem;
+    padding: 0 2px;
+}
+
+.meter-bar {
+    position: relative;
+    height: 8px;
+    background: linear-gradient(to right,
+        #ef5350 0%,
+        #ffb74d 20%,
+        #66bb6a 40%,
+        #66bb6a 60%,
+        #ffb74d 80%,
+        #ef5350 100%
+    );
+    border-radius: 4px;
+    overflow: visible;
+}
+
+.meter-center {
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateX(-50%);
+}
+
+.meter-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: left 0.1s ease-out;
+}
+
+.meter-indicator.in-tune {
+    box-shadow: 0 0 12px rgba(102, 187, 106, 0.8);
+}
+
+.meter-indicator.close {
+    box-shadow: 0 0 12px rgba(255, 183, 77, 0.8);
+}
+
+.meter-indicator.far {
+    box-shadow: 0 0 12px rgba(239, 83, 80, 0.8);
+}
+
+.cents-display {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 0.4rem;
+    height: 1.2rem;
 }
 
 /* Controls */
@@ -189,6 +261,190 @@ h1 {
 .mode-toggle.keyboard-mode {
     border-color: #66bb6a;
     color: #66bb6a;
+}
+
+/* Difficulty selector */
+.difficulty-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.difficulty-select {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid #444;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 1.8rem;
+}
+
+.difficulty-select:hover {
+    border-color: #4fc3f7;
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: #4fc3f7;
+    box-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+}
+
+.difficulty-select option {
+    background: #1a1a2e;
+    color: #fff;
+}
+
+/* Calibrate button */
+.calibrate-button {
+    background: transparent;
+    color: #888;
+    border: 1px solid #444;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.calibrate-button:hover {
+    border-color: #ffb74d;
+    color: #ffb74d;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+    color: #ffb74d;
+}
+
+.calibration-instruction {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 1.5rem;
+}
+
+.calibration-string {
+    margin-bottom: 1.5rem;
+}
+
+.calibration-string span:first-child {
+    display: block;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.3rem;
+}
+
+.calibration-string span:last-child {
+    font-size: 1.2rem;
+    color: #888;
+}
+
+.calibration-progress {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4fc3f7, #66bb6a);
+    border-radius: 3px;
+    transition: width 0.1s linear;
+}
+
+.calibration-status {
+    font-size: 0.9rem;
+    color: #4fc3f7;
+    margin-bottom: 1.5rem;
+    height: 1.5rem;
+}
+
+.calibration-status.success {
+    color: #66bb6a;
+}
+
+.calibration-status.error {
+    color: #ef5350;
+}
+
+.calibration-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.calibration-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid;
+}
+
+.calibration-btn.skip {
+    background: transparent;
+    color: #888;
+    border-color: #444;
+}
+
+.calibration-btn.skip:hover {
+    border-color: #4fc3f7;
+    color: #4fc3f7;
+}
+
+.calibration-btn.cancel {
+    background: transparent;
+    color: #ef5350;
+    border-color: #ef5350;
+}
+
+.calibration-btn.cancel:hover {
+    background: rgba(239, 83, 80, 0.1);
 }
 
 /* Responsive */

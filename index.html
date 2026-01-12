@@ -22,6 +22,19 @@
 
         <div id="detected-note" class="detected-note"></div>
 
+        <div id="pitch-meter" class="pitch-meter">
+            <div class="meter-scale">
+                <span>-50</span>
+                <span>0</span>
+                <span>+50</span>
+            </div>
+            <div class="meter-bar">
+                <div class="meter-center"></div>
+                <div id="meter-indicator" class="meter-indicator"></div>
+            </div>
+            <div id="cents-display" class="cents-display">--</div>
+        </div>
+
         <div class="controls">
             <button id="start-button" class="start-button">Start</button>
             <div class="score-container">
@@ -29,6 +42,37 @@
                 <span id="score" class="score">0</span>
             </div>
             <button id="mode-toggle" class="mode-toggle">Switch to Keyboard Mode</button>
+            <div class="difficulty-container">
+                <label for="difficulty">Difficulty:</label>
+                <select id="difficulty" class="difficulty-select">
+                    <option value="100">Beginner</option>
+                    <option value="50" selected>Intermediate</option>
+                    <option value="25">Advanced</option>
+                </select>
+            </div>
+            <button id="calibrate-button" class="calibrate-button">Calibrate Guitar</button>
+        </div>
+    </div>
+
+    <!-- Calibration Modal -->
+    <div id="calibration-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Guitar Calibration</h2>
+            <p id="calibration-instruction" class="calibration-instruction">
+                Play the open string shown and hold for 2 seconds
+            </p>
+            <div class="calibration-string">
+                <span id="calibration-string-num">6th string</span>
+                <span id="calibration-string-note">(Low E)</span>
+            </div>
+            <div class="calibration-progress">
+                <div id="calibration-progress-bar" class="progress-bar"></div>
+            </div>
+            <div id="calibration-status" class="calibration-status">Listening...</div>
+            <div class="calibration-buttons">
+                <button id="calibration-skip" class="calibration-btn skip">Skip String</button>
+                <button id="calibration-cancel" class="calibration-btn cancel">Cancel</button>
+            </div>
         </div>
     </div>
 
