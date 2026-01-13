@@ -10,10 +10,19 @@
     <div class="container">
         <h1>Fretboard Trainer</h1>
 
+        <div class="level-selector">
+            <button class="level-btn active" data-level="1">1</button>
+            <button class="level-btn" data-level="2">2</button>
+            <button class="level-btn" data-level="3">3</button>
+        </div>
+
         <div class="flashcard">
             <div id="note-display" class="note-display">?</div>
+            <div id="fret-display" class="fret-display"></div>
             <div id="string-display" class="string-display">Press Start to begin</div>
         </div>
+
+        <div id="fretboard-diagram" class="fretboard-diagram-container"></div>
 
         <div class="status-container">
             <div id="status-indicator" class="status-indicator"></div>
@@ -46,7 +55,9 @@
 
 
     <script src="fretboard.js"></script>
+    <script src="fretboard-diagram.js"></script>
     <script src="audio.js"></script>
+    <script src="speech.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

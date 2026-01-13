@@ -83,6 +83,11 @@ function getStringName(stringNum) {
     return `${ordinals[stringNum]} string`;
 }
 
+// Get fret display text
+function getFretDisplay(fret) {
+    return fret === 0 ? 'Open' : `Fret ${fret}`;
+}
+
 // Export for use in other modules
 window.Fretboard = {
     NOTE_NAMES,
@@ -91,5 +96,6 @@ window.Fretboard = {
     getRandomChallenge,
     frequencyToNote,
     isNoteMatch,
-    getStringName
+    getStringName,
+    getFretDisplay
 };

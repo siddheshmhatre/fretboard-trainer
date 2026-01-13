@@ -2,11 +2,15 @@
 
 class FretboardTrainer {
     constructor() {
-        this.detector = new AudioPitchDetector();
+        this.pitchDetector = new AudioPitchDetector();
+        this.speechDetector = new SpeechNoteDetector();
+        this.fretboardDiagram = new FretboardDiagram('fretboard-diagram');
+
         this.currentChallenge = null;
         this.isRunning = false;
         this.score = 0;
         this.correctStreak = 0;
+        this.level = parseInt(localStorage.getItem('fretboardLevel')) || 1;
 
         // Timing settings
         this.successDisplayDuration = 800; // ms to show success before next card
@@ -17,6 +21,7 @@ class FretboardTrainer {
 
         // DOM elements
         this.noteDisplay = document.getElementById('note-display');
+        this.fretDisplay = document.getElementById('fret-display');
         this.stringDisplay = document.getElementById('string-display');
         this.statusIndicator = document.getElementById('status-indicator');
         this.statusText = document.getElementById('status-text');
@@ -34,12 +39,85 @@ class FretboardTrainer {
 
     init() {
         this.startButton.addEventListener('click', () => this.toggleSession());
+        this.initLevelSelector();
 
-        this.detector.onPitchDetected = (frequency, probability) => {
+        // Set up pitch detector callback (for levels 1 and 3)
+        this.pitchDetector.onPitchDetected = (frequency, probability) => {
             this.handlePitchDetected(frequency, probability);
         };
 
+        // Set up speech detector callbacks (for level 2)
+        this.speechDetector.onNoteDetected = (noteName) => {
+            this.handleSpeechDetected(noteName);
+        };
+
+        this.speechDetector.onRawTranscript = (transcript) => {
+            // Show raw transcript for debugging
+            if (this.level === 2) {
+                this.detectedNoteDisplay.textContent = `Raw: "${transcript}"`;
+            }
+        };
+
+        this.speechDetector.onSpeechStart = () => {
+            if (this.level === 2 && this.isRunning) {
+                this.statusText.textContent = 'Hearing you...';
+            }
+        };
+
+        this.speechDetector.onSpeechEnd = () => {
+            if (this.level === 2 && this.isRunning) {
+                this.statusText.textContent = 'Processing...';
+            }
+        };
+
+        this.speechDetector.onError = (error) => {
+            if (this.level === 2 && this.isRunning) {
+                this.detectedNoteDisplay.textContent = `Speech error: ${error}`;
+            }
+        };
+
         this.showWaiting();
+    }
+
+    initLevelSelector() {
+        const buttons = document.querySelectorAll('.level-btn');
+        buttons.forEach(btn => {
+            const level = parseInt(btn.dataset.level);
+            if (level === this.level) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            btn.addEventListener('click', () => this.setLevel(level));
+        });
+    }
+
+    setLevel(level) {
+        const oldLevel = this.level;
+        this.level = level;
+        localStorage.setItem('fretboardLevel', level);
+
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.level) === level);
+        });
+
+        if (this.isRunning) {
+            // Switch detectors if needed
+            const wasUsingPitch = oldLevel !== 2;
+            const needsPitch = level !== 2;
+
+            if (wasUsingPitch && !needsPitch) {
+                // Switching from pitch to speech
+                this.pitchDetector.stop();
+                this.speechDetector.start();
+            } else if (!wasUsingPitch && needsPitch) {
+                // Switching from speech to pitch
+                this.speechDetector.stop();
+                this.pitchDetector.start();
+            }
+
+            this.nextChallenge();
+        }
     }
 
     async toggleSession() {
@@ -51,7 +129,13 @@ class FretboardTrainer {
     }
 
     async startSession() {
-        const result = await this.detector.start();
+        // Start appropriate detector based on level
+        let result;
+        if (this.level === 2) {
+            result = await this.speechDetector.start();
+        } else {
+            result = await this.pitchDetector.start();
+        }
 
         if (!result.success) {
             this.statusText.textContent = result.error;
@@ -72,7 +156,8 @@ class FretboardTrainer {
 
     stopSession() {
         this.isRunning = false;
-        this.detector.stop();
+        this.pitchDetector.stop();
+        this.speechDetector.stop();
 
         this.startButton.textContent = 'Start';
         this.startButton.classList.remove('active');
@@ -84,10 +169,39 @@ class FretboardTrainer {
         this.currentChallenge = Fretboard.getRandomChallenge();
         this.correctStartTime = null;
 
-        this.noteDisplay.textContent = this.currentChallenge.note;
-        this.stringDisplay.textContent = Fretboard.getStringName(this.currentChallenge.string);
-
+        this.updateDisplay();
         this.showListening();
+    }
+
+    updateDisplay() {
+        const challenge = this.currentChallenge;
+        const fretText = Fretboard.getFretDisplay(challenge.fret);
+        const stringText = Fretboard.getStringName(challenge.string);
+
+        switch (this.level) {
+            case 1:
+                // Visual learning: show note + fret/string + fretboard diagram
+                this.noteDisplay.textContent = challenge.note;
+                this.fretDisplay.textContent = `${fretText}, ${stringText}`;
+                this.stringDisplay.textContent = 'Play the note shown above';
+                this.fretboardDiagram.show(challenge.string, challenge.fret);
+                break;
+            case 2:
+                // Position recognition: show fret + string, user speaks the note
+                this.noteDisplay.textContent = fretText;
+                this.fretDisplay.textContent = '';
+                this.stringDisplay.textContent = stringText;
+                this.fretboardDiagram.hide();
+                break;
+            case 3:
+            default:
+                // Note location: show note + string only (current behavior)
+                this.noteDisplay.textContent = challenge.note;
+                this.fretDisplay.textContent = '';
+                this.stringDisplay.textContent = stringText;
+                this.fretboardDiagram.hide();
+                break;
+        }
     }
 
     handlePitchDetected(frequency, probability = 1) {
@@ -119,6 +233,29 @@ class FretboardTrainer {
             }
         } else {
             this.correctStartTime = null;
+        }
+    }
+
+    handleSpeechDetected(spokenNote) {
+        if (!this.isRunning || !this.currentChallenge) return;
+        if (this.level !== 2) return;
+
+        // Check if spoken note matches target
+        if (spokenNote === this.currentChallenge.note) {
+            this.detectedNoteDisplay.textContent = `Heard: "${spokenNote}"`;
+            this.handleCorrect();
+        } else {
+            // Show incorrect feedback
+            this.detectedNoteDisplay.textContent = `Heard: "${spokenNote}" - Try again!`;
+            this.statusIndicator.className = 'status-indicator error';
+            this.statusText.textContent = `Not quite - say the note for this position`;
+
+            // Reset back to listening state after brief delay
+            setTimeout(() => {
+                if (this.isRunning && this.level === 2) {
+                    this.showListening();
+                }
+            }, 1500);
         }
     }
 
@@ -178,11 +315,13 @@ class FretboardTrainer {
 
     showWaiting() {
         this.noteDisplay.textContent = '?';
+        this.fretDisplay.textContent = '';
         this.stringDisplay.textContent = 'Press Start to begin';
         this.statusIndicator.className = 'status-indicator';
         this.statusText.textContent = 'Ready';
         this.detectedNoteDisplay.textContent = '';
         this.resetPitchMeter();
+        this.fretboardDiagram.hide();
     }
 
     resetPitchMeter() {
@@ -197,7 +336,11 @@ class FretboardTrainer {
 
     showListening() {
         this.statusIndicator.className = 'status-indicator listening';
-        this.statusText.textContent = 'Listening...';
+        if (this.level === 2) {
+            this.statusText.textContent = 'Say the note name...';
+        } else {
+            this.statusText.textContent = 'Listening...';
+        }
     }
 
     showSuccess() {
@@ -205,6 +348,7 @@ class FretboardTrainer {
         this.statusText.textContent = 'Correct!';
         this.detectedNoteDisplay.textContent = '';
         this.resetPitchMeter();
+        this.fretboardDiagram.hide();
     }
 }
 
